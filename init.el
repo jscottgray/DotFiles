@@ -3,8 +3,6 @@
 ;;; Commentary:
 ;; this is my Emacs configuration
 
-;;; Code:
-
 ;; Package configs
 (require 'package)
 (setq package-enable-at-startup nil)
@@ -15,12 +13,17 @@
 (add-to-list 'package-archives '("org" . "https://orgmode.org/elpa/") t)
 (package-initialize)
 
+;; Save backup files to a different folder
+(setq backup-directory-alist '(("." . "~/.saves")))
+
 ;; Bootstrap `use-package`
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
   (package-install 'use-package))
 (require 'use-package)
 
+
+;; This is so we don't have to have "ensure t" for each use-package
 (require 'use-package-ensure)
 (setq use-package-always-ensure t)
 
@@ -35,6 +38,9 @@
   ;; config optons
   )
 
+;; Magit
+(use-package magit)
+
 ;; MIPS MODE
 ;;----------
 ;; (add-to-list 'load-path "~/.emacs.d/mips-mode/")
@@ -47,7 +53,7 @@
 (show-paren-mode 1)
 
 ;; Highlight current line
-(global-hl-line-mode 1)
+;; (global-hl-line-mode 1)
 
 ;; full path in title bar
 (setq-default frame-title-format "%b (%f)")
@@ -63,39 +69,20 @@
 ;; Shows a list of buffers
 (global-set-key (kbd "C-x C-b") 'ibuffer)
 
-;;
-(unless (package-installed-p 'elpy)
-  (package-refresh-contents)
-  (package-install 'elpy))
-(require 'elpy)
+;; ;; Emacs Lisp Python Environment
+;; (use-package elpy)
+;; (elpy-enable)
 
+;; (use-package py-autopep8)
+;; (add-hook 'python-mode-hook 'py-autopep8-enable-on-save)
+
+;; Superior Lisp Interaction Mode for Emacs
 (use-package slime
-  :ensure t
   :init
   (setq inferior-lisp-program "/usr/local/bin/sbcl")
   (setq slime-contribs '(slime-fancy slime-company))
-  ;; :hook slime-mode
-  ;; :config
-  ;; (add-to-list 'slime-contribs 'slime-fancy)
-  )
-
-;; (use-package slime
-;;   :ensure t
-;;   :init
-;;   (setq inferior-lisp-program "/usr/local/bin/sbcl")
-;;   (setq slime-contribs '(slime-fancy slime-company))
-;;   :config
-;;   (add-hook 'slime-mode-hook 'slime)
-;;   )
-
-;; (unless (package-installed-p 'slime)
-;;   (package-refresh-contents)
-;;   (package-install 'slime))
-;; (require 'slime)
-
-;; (setq inferior-lisp-program "/usr/local/bin/sbcl")
-;; (setq slime-contribs '(slime-fancy slime-company))
-;; (slime-setup '(slime-company))
+  :config
+  (require 'slime-autoloads))
 
 ;; Connect to slime whenever a Lisp file is opened
 ;; (add-hook 'slime-mode-hook
@@ -107,21 +94,48 @@
       [?\C-x ?\C-s ?\C-c ?\C-l return ?\s-\' ?\M-p return])
 (global-set-key "\C-t" 'lisp-test)
 
-;; Move Text
-(require 'move-text)
-(global-set-key [s-up] 'move-text-up)
-(global-set-key [s-down] 'move-text-down)
+;; Clojure
+(use-package clojure-mode
+  :ensure t)
 
-;; hl-todo
-;;(require 'hl-todo)
-(use-package hl-todo
+;; PDF-Tools
+(use-package pdf-tools
   :ensure t
   :config
-  ;; (global-hl-todo-mode)
-  (add-hook 'after-init-hook 'global-hl-todo-mode t)
-  )
+  (custom-set-variables
+    '(pdf-tools-handle-upgrades nil)) ; Use brew upgrade pdf-tools instead.
+  (setq pdf-info-epdfinfo-program "/usr/local/bin/epdfinfo"))
+(pdf-tools-install)
 
-;;TODO : test TODO text
+;; Web Mode
+(use-package web-mode)
+
+(add-to-list 'auto-mode-alist '("\\.phtml\\'" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.tpl\\.php\\'" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.[agj]sp\\'" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.as[cp]x\\'" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.erb\\'" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.mustache\\'" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.djhtml\\'" . web-mode))
+
+(add-to-list 'auto-mode-alist '("\\.html?\\'" . web-mode))
+
+(use-package company-web)
+
+(add-to-list 'company-backends 'company-web-html)
+(add-to-list 'company-backends 'company-web-jade)
+(add-to-list 'company-backends 'company-web-slim)
+
+;; Move Text
+(use-package move-text
+  :bind
+  ("s-<up>" . move-text-up)
+  ("s-<down>" . move-text-down))
+
+;; hl-todo
+(use-package hl-todo
+  :init
+  (add-hook 'after-init-hook 'global-hl-todo-mode t))
 
 ;; Org Drill
 ;; (require 'org-drill)
@@ -132,18 +146,18 @@
 ;;  :config
 ;;  (evil-mode 1))
 
-;; FlyCheck
-;;(use-package flycheck
-;;  :t
-;;  :int (global-flycheck-mode))
+(use-package flycheck-pycheckers)
+(with-eval-after-load 'flycheck
+    (add-hook 'flycheck-mode-hook #'flycheck-pycheckers-setup))
 
-(use-package flycheck
-  :ensure t
-  :commands flycheck-mode)
+;; FlyCheck
+(use-package flycheck)
+  ;; :commands global-flycheck-mode)
+;; ;; show tips as convenient pos-top popups
+;; (use-package flycheck-pos-tip)
 
 ;; Theme - Monokai
-(use-package monokai-theme
-  :ensure t)
+(use-package monokai-theme)
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
@@ -167,7 +181,8 @@
  '(org-agenda-files nil)
  '(package-selected-packages
    (quote
-    (helm-posframe slime-company auto-complete all-the-icons paredit cider sx anzu anaconda-mode minimap ansi jedi ## move-text git-gutter monokai-theme rainbow-delimiters 2048-game spaceline-all-the-icons mips-mode flycheck org-plus-contrib magit tabbar tabbar-ruler dashboard org spaceline neotree which-key doom-themes use-package helm evil)))
+    (web-mode company-box treemacs-magit treemacs helm-posframe slime-company auto-complete all-the-icons paredit cider sx anzu anaconda-mode minimap ansi jedi ## move-text git-gutter monokai-theme rainbow-delimiters 2048-game spaceline-all-the-icons mips-mode flycheck org-plus-contrib magit tabbar tabbar-ruler dashboard org spaceline neotree which-key doom-themes use-package helm evil)))
+ '(pdf-tools-handle-upgrades nil)
  '(save-place-mode t)
  '(tabbar-separator (quote (0.5)))
  '(tool-bar-mode nil)
@@ -202,7 +217,6 @@
 
 ;; Helm
 (use-package helm
-  :ensure t
   :init
   (setq helm-M-x-fuzzy-match t
   helm-mode-fuzzy-match t
@@ -221,13 +235,11 @@
   :config
   (helm-mode 1))
 
-(use-package helm-posframe
-  :ensure t)
+(use-package helm-posframe)
 
 ;; auto-complete
 ;; https://github.com/auto-complete/auto-complete
 (use-package auto-complete
-  :ensure t
   :init
   :config
   (ac-config-default))
@@ -235,8 +247,7 @@
 ;; anzu
 ;; when searching show how many matches in current buffer
 ;; https://github.com/syohex/emacs-anzu/
-(use-package anzu
-  :ensure t)
+(use-package anzu)
 (global-anzu-mode +1)
 
 (set-face-attribute 'anzu-mode-line nil
@@ -265,10 +276,12 @@
 (setq frame-title-format nil)
 
 ;; UI configurations
-;; -----------------
 (scroll-bar-mode -1)
 (tool-bar-mode   -1)
 (tooltip-mode    -1)
+;; (setq scroll-step 1)
+
+;; (setq echo-keystrokes 0.1)
 
 ;; (menu-bar-mode   -1) ;; turn this on to remove menu bar options
 
@@ -292,15 +305,66 @@
              ("s" . sx-search)))
 
 ;; All The Icons
-;; (use-package all-the-icons
-;; 	     :ensure t)
+(use-package all-the-icons)
 
 ;; NeoTree
 ;; Tree explorer plugin for navigating the filesystem
-(use-package neotree
-  :ensure t
+;; (use-package neotree
+  ;; :ensure t
+  ;; :init
+;; (setq neo-theme (if (display-graphic-p) 'icons 'arrow)))
+(use-package treemacs
   :init
-  (setq neo-theme (if (display-graphic-p) 'icons 'arrow)))
+  (with-eval-after-load 'winum
+    (define-key winum-keymap (kbd "M-0") #'treemacs-select-window))
+  :custom
+  (treemacs-collapse-dirs 3)
+  (treemacs-deferred-git-apply-delay 0.5)
+  (treemacs-display-in-side-window t)
+  (treemacs-file-event-delay 5000)
+  (treemacs-file-follow-delay 0.2)
+  (treemacs-follow-after-init t)
+  (treemacs-follow-recenter-distance 0.1)
+  (treemacs-git-command-pipe "")
+  (treemacs-goto-tag-strategy 'refetch-index)
+  (treemacs-indentation 2)
+  (treemacs-indentation-string " ")
+  (treemacs-is-never-other-window nil)
+  (treemacs-max-git-entries 5000)
+  (treemacs-no-png-images nil)
+  (treemacs-no-delete-other-windows t)
+  (treemacs-project-follow-cleanup nil)
+  (treemacs-persist-file (expand-file-name ".cache/treemacs-persist" user-emacs-directory))
+  (treemacs-recenter-after-file-follow nil)
+  (treemacs-recenter-after-tag-follow nil)
+  (treemacs-show-cursor nil)
+  (treemacs-show-hidden-files t)
+  (treemacs-silent-filewatch nil)
+  (treemacs-silent-refresh nil)
+  (treemacs-sorting 'alphabetic-desc)
+  (treemacs-space-between-root-nodes t)
+  (treemacs-tag-follow-cleanup t)
+  (treemacs-tag-follow-delay 1.5)
+  (treemacs-width 35)
+  :config
+  ;; The default width and height of the icons is 22 pixels. If you are
+  ;; using a Hi-DPI display, uncomment this to double the icon size.
+  (treemacs-resize-icons 44)
+  (treemacs-follow-mode t)
+  (treemacs-filewatch-mode t)
+  (treemacs-fringe-indicator-mode t)
+  :bind
+  (("M-0"       . treemacs-select-window)
+   ("C-x t 1"   . treemacs-delete-other-windows)
+   ("C-x t t"   . treemacs)
+   ("C-x t B"   . treemacs-bookmark)
+   ("C-x t C-t" . treemacs-find-file)
+   ("C-x t M-t" . treemacs-find-tag))
+  (:map treemacs-mode-map ("C-p" . treemacs-previous-line)))
+
+(use-package treemacs-magit
+  :defer t
+  :after (treemacs magit))
 
 ;; Powerline
 (use-package spaceline
@@ -316,8 +380,6 @@
 ;;  (spaceline-toggle-minor-modes-off)
 ;;  (spaceline-toggle-buffer-size-off)
 ;;  (spaceline-toggle-evil-state-on))
-
-
 
 ;; ((The following lines are always needed. Choose your own keys.)
 ;; neotree
@@ -378,7 +440,6 @@
 
 ;; Custom Homescreen
 (use-package dashboard
- :ensure t
  :config
  (dashboard-setup-startup-hook))
 
@@ -389,8 +450,7 @@
 (setq tramp-default-method "ssh")
 
 ;; rainbow delimiters
-(use-package rainbow-delimiters
-	     :ensure t)
+(use-package rainbow-delimiters)
 (add-hook 'prog-mode-hook #' rainbow-delimiters-mode)
 
 ;; flycheck
@@ -407,8 +467,7 @@
 
 ;; Automatically load paredit when editing a lisp file
 ;; More at http://www.emacswiki.org/emacs/ParEdit
-(use-package paredit
-	     :ensure t)
+(use-package paredit)
 (autoload 'enable-paredit-mode "paredit" "Turn on pseudo-structural editing of Lisp code." t)
 (add-hook 'emacs-lisp-mode-hook       #'enable-paredit-mode)
 (add-hook 'eval-expression-minibuffer-setup-hook #'enable-paredit-mode)
@@ -416,6 +475,7 @@
 (add-hook 'lisp-mode-hook             #'enable-paredit-mode)
 (add-hook 'lisp-interaction-mode-hook #'enable-paredit-mode)
 (add-hook 'scheme-mode-hook           #'enable-paredit-mode)
+(add-hook 'clojure-mode-hook          #'enable-paredit-mode)
 
 ;; eldoc-mode shows documentation in the minibuffer when writing code
 ;; http://www.emacswiki.org/emacs/ElDoc
